@@ -11,16 +11,13 @@
 //! An entire certificate chain can be created using the `sevctl`
 //! utility.
 
-#![cfg(all(feature = "sev", feature = "dangerous_hw_tests"))]
+#![cfg(all(feature = "sev", feature = "dangerous_hw_tests", feature = "platform"))]
 
 #[cfg(feature = "crypto-openssl")]
 use crate::{
-    attestation::endorser::sev::{
-        ca::Chain as CaChain,
-        cert::Certificate,
-        Chain as FullChain,
-    },
-    firmware::host::Firmware,
+    attestation::endorser::sev::{ca::Chain as CaChain, Chain as FullChain},
+    cert::Certificate,
+    platform::Firmware,
     types::shared::Generation,
 };
 
