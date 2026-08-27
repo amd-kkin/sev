@@ -1,57 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
-//! Certificate chain integration tests (require attestation role features).
+//! Certificate chain integration tests.
+//!
+//! Every module here decodes `endorser` certificate types *and* calls
+//! `Verifiable`, so each is gated on `verifier` (which implies `endorser`)
+//! rather than on any one role.
 
-#[cfg(all(
-    feature = "sev",
-    feature = "crypto-openssl",
-    any(
-        feature = "evidence",
-        feature = "reference",
-        feature = "verifier",
-        feature = "endorser",
-        feature = "attester"
-    )
-))]
+#[cfg(all(feature = "sev", feature = "crypto-openssl", feature = "verifier"))]
 mod naples;
 
-#[cfg(all(
-    feature = "sev",
-    feature = "crypto-openssl",
-    any(
-        feature = "evidence",
-        feature = "reference",
-        feature = "verifier",
-        feature = "endorser",
-        feature = "attester"
-    )
-))]
+#[cfg(all(feature = "sev", feature = "crypto-openssl", feature = "verifier"))]
 mod rome;
 
 #[cfg(all(
     feature = "snp",
     any(feature = "crypto-openssl", feature = "crypto-rust"),
-    any(
-        feature = "evidence",
-        feature = "reference",
-        feature = "verifier",
-        feature = "endorser",
-        feature = "attester"
-    )
+    feature = "verifier"
 ))]
 mod builtin;
 
-#[cfg(all(
-    feature = "crypto-openssl",
-    feature = "sev",
-    any(
-        feature = "evidence",
-        feature = "reference",
-        feature = "verifier",
-        feature = "endorser",
-        feature = "attester"
-    )
-))]
+#[cfg(all(feature = "crypto-openssl", feature = "sev", feature = "verifier"))]
 mod sev {
     use super::*;
 
@@ -71,13 +39,7 @@ mod sev {
 #[cfg(all(
     feature = "snp",
     any(feature = "crypto-openssl", feature = "crypto-rust"),
-    any(
-        feature = "evidence",
-        feature = "reference",
-        feature = "verifier",
-        feature = "endorser",
-        feature = "attester"
-    )
+    feature = "verifier"
 ))]
 mod snp {
 

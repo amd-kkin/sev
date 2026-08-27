@@ -219,10 +219,12 @@ jobs:
   # (a trait impl that vanishes, a `mod` gated more loosely than what it
   # imports) shows up here and nowhere else.
   #
-  # `--lib` is deliberate: this guards feature wiring, not behavior, and the
-  # integration tests in tests/ assume `reference` is enabled. Combinations
-  # rejected by a `compile_error!` in lib.rs (e.g. sev+platform without
-  # endorser) are intentionally absent.
+  # `--all-targets` covers tests/ too, whose `#[cfg]` gates are just as prone to
+  # drifting from what they import. Combinations rejected by a `compile_error!`
+  # in lib.rs (e.g. sev+platform without endorser) are intentionally absent.
+  #
+  # This compiles but does not run: several combinations have no hardware or no
+  # tests to speak of, and behavior is already covered by the jobs above.
   #
   # When adding a feature, add it here alone.
   feature-isolation:
@@ -233,7 +235,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
-      - run: cargo check --lib --no-default-features --features=${{ matrix.features }}
+      - run: cargo check --all-targets --no-default-features --features=${{ matrix.features }}
 
     strategy:
       fail-fast: false

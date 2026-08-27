@@ -2,7 +2,7 @@
 
 #![cfg(feature = "crypto-openssl")]
 
-#[cfg(all(target_os = "linux", feature = "snp"))]
+#[cfg(all(target_os = "linux", feature = "snp", feature = "reference"))]
 mod snp_tests {
     use sev::{
         attestation::reference::snp::*,
@@ -363,7 +363,7 @@ mod snp_tests {
     }
 }
 
-#[cfg(all(target_os = "linux", feature = "sev"))]
+#[cfg(all(target_os = "linux", feature = "sev", feature = "reference"))]
 mod sev_tests {
     use sev::{attestation::reference::sev::*, types::shared::reference::vcpu::CpuType};
     // test regular sev-es

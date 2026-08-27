@@ -4,7 +4,8 @@
 
 use kvm_bindings::{kvm_create_guest_memfd, kvm_userspace_memory_region2, KVM_MEM_GUEST_MEMFD};
 use kvm_ioctls::{Kvm, VcpuExit};
-use sev::launch::{snp::*, PageType};
+// `PageType` is re-exported from `launch::snp`, so the glob covers it.
+use sev::launch::snp::*;
 use sev::platform::Firmware;
 use sev::types::snp::GuestPolicy;
 use std::os::fd::RawFd;
