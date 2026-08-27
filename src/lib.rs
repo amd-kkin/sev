@@ -232,13 +232,9 @@ compile_error!(
     "features \"verifier\", \"endorser\", and \"reference\" require \"crypto-openssl\" or \"crypto-rust\""
 );
 
-#[cfg(all(
-    feature = "sev",
-    feature = "platform",
-    not(all(feature = "endorser", feature = "verifier"))
-))]
+#[cfg(all(feature = "sev", feature = "platform", not(feature = "endorser")))]
 compile_error!(
-    "feature \"platform\" requires \"endorser\" and \"verifier\" when \"sev\" is enabled (legacy SEV host APIs use attestation::endorser::sev certificate types)"
+    "feature \"platform\" requires \"endorser\" when \"sev\" is enabled (legacy SEV host APIs use attestation::endorser::sev certificate types)"
 );
 
 #[cfg(any(feature = "sev", feature = "snp"))]

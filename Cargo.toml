@@ -63,7 +63,7 @@ snp = []
 evidence = []
 reference = []
 verifier = ["evidence", "endorser"]
-endorser = ["evidence"]
+endorser = []
 attester = []
 
 # Cryptographic backends (pick one for verifier/endorser/reference).

@@ -62,7 +62,7 @@
 //! [`FirmwareError`](crate::error::FirmwareError) from the PSP firmware status
 //! word returned by the kernel.
 
-#[cfg(all(feature = "sev", feature = "endorser", feature = "verifier"))]
+#[cfg(all(feature = "sev", feature = "endorser"))]
 pub mod sev;
 
 #[cfg(feature = "snp")]

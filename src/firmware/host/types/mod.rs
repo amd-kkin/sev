@@ -17,12 +17,7 @@
 #[cfg(feature = "platform")]
 mod shared;
 
-#[cfg(all(
-    feature = "sev",
-    feature = "platform",
-    feature = "endorser",
-    feature = "verifier"
-))]
+#[cfg(all(feature = "sev", feature = "platform", feature = "endorser"))]
 mod sev;
 
 #[cfg(all(feature = "snp", feature = "platform"))]
@@ -31,12 +26,7 @@ mod snp;
 #[cfg(feature = "platform")]
 pub use self::shared::*;
 
-#[cfg(all(
-    feature = "sev",
-    feature = "platform",
-    feature = "endorser",
-    feature = "verifier"
-))]
+#[cfg(all(feature = "sev", feature = "platform", feature = "endorser"))]
 pub use self::sev::*;
 
 #[cfg(all(feature = "snp", feature = "platform"))]

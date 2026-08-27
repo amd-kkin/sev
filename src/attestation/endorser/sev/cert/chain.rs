@@ -60,30 +60,6 @@ impl Encoder<()> for Chain {
     }
 }
 
-impl TryFrom<&Chain> for crate::types::shared::Generation {
-    type Error = ();
-
-    fn try_from(schain: &Chain) -> std::result::Result<Self, Self::Error> {
-        use crate::attestation::verifier::Verifiable;
-
-        let naples: super::super::ca::Chain = crate::types::shared::Generation::Naples.into();
-        let rome: super::super::ca::Chain = crate::types::shared::Generation::Rome.into();
-        let milan: super::super::ca::Chain = crate::types::shared::Generation::Milan.into();
-        let genoa: super::super::ca::Chain = crate::types::shared::Generation::Genoa.into();
-        let turin: super::super::ca::Chain = crate::types::shared::Generation::Turin.into();
-
-        Ok(if (&naples.ask, &schain.cek).verify().is_ok() {
-            crate::types::shared::Generation::Naples
-        } else if (&rome.ask, &schain.cek).verify().is_ok() {
-            crate::types::shared::Generation::Rome
-        } else if (&milan.ask, &schain.cek).verify().is_ok() {
-            crate::types::shared::Generation::Milan
-        } else if (&genoa.ask, &schain.cek).verify().is_ok() {
-            crate::types::shared::Generation::Genoa
-        } else if (&turin.ask, &schain.cek).verify().is_ok() {
-            crate::types::shared::Generation::Turin
-        } else {
-            return Err(());
-        })
-    }
-}
+// `impl TryFrom<&Chain> for Generation` lives in `crate::attestation::verifier::sev::chain`:
+// inferring the generation requires `Verifiable`, and depending on the verifier
+// from here would make `endorser` and `verifier` mutually dependent.
