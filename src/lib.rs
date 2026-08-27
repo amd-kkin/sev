@@ -273,5 +273,10 @@ pub mod error;
 /// Linux kernel UAPI.
 pub mod parser;
 
-#[cfg(all(feature = "sev", feature = "dangerous_hw_tests", feature = "platform"))]
+#[cfg(all(
+    feature = "sev",
+    feature = "dangerous_hw_tests",
+    feature = "platform",
+    feature = "verifier"
+))]
 pub use util::cached_chain;

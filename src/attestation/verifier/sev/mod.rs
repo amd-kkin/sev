@@ -5,3 +5,5 @@
 mod cert;
 mod chain;
 mod report;
+
+pub use self::chain::infer_generation;

@@ -11,14 +11,19 @@
 //! An entire certificate chain can be created using the `sevctl`
 //! utility.
 
-#![cfg(all(feature = "sev", feature = "dangerous_hw_tests", feature = "platform"))]
+// `fetch` infers the chain's generation, which requires the verifier.
+#![cfg(all(
+    feature = "sev",
+    feature = "dangerous_hw_tests",
+    feature = "platform",
+    feature = "verifier"
+))]
 
 #[cfg(feature = "crypto-openssl")]
 use crate::{
-    attestation::endorser::sev::{ca::Chain as CaChain, Chain as FullChain},
-    cert::Certificate,
+    attestation::endorser::sev::{ca::Chain as CaChain, cert::Certificate, Chain as FullChain},
+    attestation::verifier::sev::infer_generation,
     platform::Firmware,
-    types::shared::Generation,
 };
 
 #[cfg(feature = "crypto-openssl")]
@@ -119,7 +124,7 @@ pub fn get_chain() -> FullChain {
 
     sev_chain.cek = Certificate::decode(&mut cursor, ()).expect("Failed to decode CEK cert");
 
-    let ca_chain: CaChain = Generation::try_from(&sev_chain)
+    let ca_chain: CaChain = infer_generation(&sev_chain)
         .expect("Failed to generate SEV CA chain")
         .into();
 

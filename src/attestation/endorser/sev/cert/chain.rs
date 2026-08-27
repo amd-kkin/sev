@@ -60,6 +60,7 @@ impl Encoder<()> for Chain {
     }
 }
 
-// `impl TryFrom<&Chain> for Generation` lives in `crate::attestation::verifier::sev::chain`:
-// inferring the generation requires `Verifiable`, and depending on the verifier
-// from here would make `endorser` and `verifier` mutually dependent.
+// Generation inference for a `Chain` lives in the verifier, as
+// `crate::attestation::verifier::sev::infer_generation`: it requires
+// `Verifiable`, and depending on the verifier from here would make `endorser`
+// and `verifier` mutually dependent.

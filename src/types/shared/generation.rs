@@ -32,14 +32,19 @@ use std::convert::TryFrom;
 /// assert_eq!(generation, Generation::Milan);
 ///
 /// // Legacy SEV: infer generation from an exported platform certificate chain
-/// // (`sev`, `crypto-openssl`, and `platform` features required).
-/// # #[cfg(all(feature = "crypto-openssl", feature = "sev", feature = "platform"))]
+/// // (`sev`, `crypto-openssl`, `platform`, and `verifier` features required).
+/// # #[cfg(all(
+/// #     feature = "crypto-openssl",
+/// #     feature = "sev",
+/// #     feature = "platform",
+/// #     feature = "verifier"
+/// # ))]
 /// # {
-/// # use std::convert::TryFrom;
+/// # use sev::attestation::verifier::sev::infer_generation;
 /// # use sev::platform::Firmware;
 /// # let mut firmware = Firmware::open().unwrap();
 /// # let chain = firmware.pdh_cert_export().unwrap();
-/// # let generation = Generation::try_from(&chain).unwrap();
+/// # let generation = infer_generation(&chain).unwrap();
 /// # let _ = generation.titlecase();
 /// # }
 /// ```
