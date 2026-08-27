@@ -237,6 +237,16 @@ compile_error!(
     "feature \"platform\" requires \"endorser\" when \"sev\" is enabled (legacy SEV host APIs use attestation::endorser::sev certificate types)"
 );
 
+#[cfg(all(
+    feature = "sev",
+    feature = "launch",
+    target_os = "linux",
+    not(feature = "verifier")
+))]
+compile_error!(
+    "feature \"launch\" requires \"verifier\" when \"sev\" is enabled (launch::sev::Session::start verifies the platform certificate chain)"
+);
+
 #[cfg(any(feature = "sev", feature = "snp"))]
 pub mod types;
 

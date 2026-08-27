@@ -211,6 +211,60 @@ jobs:
         features:
           - snp,evidence,verifier,endorser,reference,crypto-rust
 
+  # Each RATS role and host feature in isolation.
+  #
+  # The jobs above always enable evidence+verifier+endorser+reference together,
+  # so a module that reaches across roles still compiles there. This job is what
+  # catches it: a feature-gated item whose gate does not match its dependencies
+  # (a trait impl that vanishes, a `mod` gated more loosely than what it
+  # imports) shows up here and nowhere else.
+  #
+  # `--lib` is deliberate: this guards feature wiring, not behavior, and the
+  # integration tests in tests/ assume `reference` is enabled. Combinations
+  # rejected by a `compile_error!` in lib.rs (e.g. sev+platform without
+  # endorser) are intentionally absent.
+  #
+  # When adding a feature, add it here alone.
+  feature-isolation:
+    name: feature isolation ${{ matrix.features }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - run: cargo check --lib --no-default-features --features=${{ matrix.features }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain:
+          - 1.85.0
+          - stable
+        features:
+          # sev: one role at a time
+          - sev
+          - sev,evidence
+          - sev,attester
+          - sev,reference,crypto-openssl
+          - sev,endorser,crypto-openssl
+          - sev,verifier,crypto-openssl
+          # sev host features, with the minimum role each requires
+          - sev,platform,endorser,crypto-openssl
+          - sev,launch,verifier,crypto-openssl
+          # snp: one role at a time, under both crypto backends
+          - snp
+          - snp,evidence
+          - snp,attester
+          - snp,platform
+          - snp,launch
+          - snp,reference,crypto-openssl
+          - snp,reference,crypto-rust
+          - snp,endorser,crypto-openssl
+          - snp,endorser,crypto-rust
+          - snp,verifier,crypto-openssl
+          - snp,verifier,crypto-rust
+
   cross-snp-aarch64:
     name: cross snp aarch64 ${{ matrix.toolchain }} ${{ matrix.features }}
     runs-on: ubuntu-latest

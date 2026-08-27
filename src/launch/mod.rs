@@ -11,7 +11,7 @@
 //! | Submodule | Required features |
 //! |-----------|-------------------|
 //! | [`snp`](self::snp) | `launch` + `snp` (Linux) |
-//! | [`sev`](self::sev) | `launch` + `sev` + `endorser` + `verifier` (Linux) |
+//! | [`sev`](self::sev) | `launch` + `sev` + `verifier` (Linux; `verifier` implies `endorser`) |
 //!
 //! All launch flows initialize KVM through the `KVM_SEV_INIT2` ioctl.
 
