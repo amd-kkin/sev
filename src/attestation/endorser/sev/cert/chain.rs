@@ -59,8 +59,3 @@ impl Encoder<()> for Chain {
         self.cek.encode(&mut writer, ())
     }
 }
-
-// Generation inference for a `Chain` lives in the verifier, as
-// `crate::attestation::verifier::sev::infer_generation`: it requires
-// `Verifiable`, and depending on the verifier from here would make `endorser`
-// and `verifier` mutually dependent.

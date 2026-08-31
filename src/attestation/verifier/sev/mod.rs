@@ -3,7 +3,8 @@
 //! Legacy SEV attestation verification.
 
 mod cert;
-mod chain;
 mod report;
 
-pub use self::chain::infer_generation;
+// `chain::infer_generation` is crate-internal: `util::cached_chain` needs it to
+// build a CA chain for an exported platform chain, but it is not public API.
+pub(crate) mod chain;

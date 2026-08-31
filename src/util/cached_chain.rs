@@ -22,7 +22,7 @@
 #[cfg(feature = "crypto-openssl")]
 use crate::{
     attestation::endorser::sev::{ca::Chain as CaChain, cert::Certificate, Chain as FullChain},
-    attestation::verifier::sev::infer_generation,
+    attestation::verifier::sev::chain::infer_generation,
     platform::Firmware,
 };
 
@@ -96,8 +96,6 @@ pub fn rm_cached_chain() {
 /// Request CEK certificate from AMD KDS and generate a full chain.
 #[cfg(all(feature = "sev", feature = "crypto-openssl"))]
 pub fn get_chain() -> FullChain {
-    use std::convert::TryFrom;
-
     let mut firmware = Firmware::open().unwrap();
 
     const CEK_SVC: &str = "https://kdsintf.amd.com/cek/id";

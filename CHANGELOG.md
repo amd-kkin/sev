@@ -159,3 +159,10 @@ All notable changes to this project will be documented in this file.
 
 - Removed deprecated launch ioctls `_INIT` and `_ES_INIT` and the unused legacy
   init marker types for KVM platform setup (superseded by `KVM_SEV_INIT2`).
+- Removed the `TryFrom<&Chain> for Generation` conversion for legacy SEV
+  platform certificate chains (`Generation::try_from(&chain)`, where `Chain` was
+  `certs::sev::sev::Chain` and is now
+  [`attestation::endorser::sev::cert::Chain`](crate::attestation::endorser::sev::cert::Chain)).
+  Inferring a [`Generation`](crate::types::shared::Generation) from an exported
+  chain is crate-internal, with no public replacement; its only consumer is the
+  `dangerous_hw_tests` chain helper `cached_chain::get_chain`.
