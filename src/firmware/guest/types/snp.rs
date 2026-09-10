@@ -1350,17 +1350,56 @@ Current Mitigation Vector:    None
 Current Extended TCB:
 
 Extended TCB Version:
-  (no fields defined)
+  ARG:            0
+  DPE Driver:     0
+  FHP Driver:     0
+  ASP OS Driver:  0
+  SoC Driver:     0
+  Microcode:      0
+  TMPM:           0
+  PreEsid:        0
+  Boot Driver:    0
+  HAD Driver:     0
+  ART RT:         0
+  ART FMC:        0
+  MP1:            0
+  IP Key Manager: 0
 
 Launch Extended TCB:
 
 Extended TCB Version:
-  (no fields defined)
+  ARG:            0
+  DPE Driver:     0
+  FHP Driver:     0
+  ASP OS Driver:  0
+  SoC Driver:     0
+  Microcode:      0
+  TMPM:           0
+  PreEsid:        0
+  Boot Driver:    0
+  HAD Driver:     0
+  ART RT:         0
+  ART FMC:        0
+  MP1:            0
+  IP Key Manager: 0
 
 Committed Extended TCB:
 
 Extended TCB Version:
-  (no fields defined)
+  ARG:            0
+  DPE Driver:     0
+  FHP Driver:     0
+  ASP OS Driver:  0
+  SoC Driver:     0
+  Microcode:      0
+  TMPM:           0
+  PreEsid:        0
+  Boot Driver:    0
+  HAD Driver:     0
+  ART RT:         0
+  ART FMC:        0
+  MP1:            0
+  IP Key Manager: 0
 
 Signature:
   R:
