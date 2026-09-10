@@ -6,7 +6,7 @@ use crate::certs::snp::{Certificate, Chain, Verifiable};
 use crate::{
     certs::snp::ecdsa::Signature,
     error::AttestationReportError,
-    firmware::host::TcbVersion,
+    firmware::host::{ExtendedTcbVersion, TcbVersion},
     parser::{ByteParser, Decoder, Encoder},
     util::{
         hexline::HexLine,
@@ -323,6 +323,15 @@ pub struct AttestationReport {
     pub launch_mit_vector: Option<u64>,
     /// Value is set to the current verified mitigation vectore value (CurrentMitVector).
     pub current_mit_vector: Option<u64>,
+
+    // 208h [192:0] Reserved. MBZ
+    /// The CurrentEtcb. Only reported by Venice parts
+    pub current_etcb: ExtendedTcbVersion,
+    /// The LaunchEtcb. Only reported by Venice parts
+    pub launch_etcb: ExtendedTcbVersion,
+    /// The CommitedEtcb. Only reported by Venice parts
+    pub committed_etcb: ExtendedTcbVersion,
+
     /// Signature of bytes 0 to 0x29F inclusive of this report.
     /// The format of the signature is found within Signature.
     pub signature: Signature,
@@ -359,6 +368,9 @@ impl Default for AttestationReport {
             launch_tcb: Default::default(),
             launch_mit_vector: Default::default(),
             current_mit_vector: Default::default(),
+            current_etcb: Default::default(),
+            launch_etcb: Default::default(),
+            committed_etcb: Default::default(),
             signature: Default::default(),
         }
     }
@@ -432,6 +444,11 @@ impl Encoder<()> for AttestationReport {
         writer
             .skip_bytes::<1>()?
             .write_bytes(self.launch_tcb, generation)?;
+
+        // TODO: write `self.current_etcb`, `self.launch_etcb` and
+        // `self.committed_etcb` here once their fields and offsets are defined.
+        // They are only carried by Venice parts, and while the struct is empty
+        // they contribute no bytes.
 
         // Write launch and current mitigation vectors based on variant
         match variant {
@@ -525,6 +542,14 @@ impl Decoder<()> for AttestationReport {
             ),
         };
 
+        // TODO: the extended TCBs are only carried by Venice parts, i.e. they
+        // are read under `matches!(generation, Generation::Venice)`. Their
+        // fields and offsets are not defined yet, so nothing is consumed from
+        // the reader and the gate lands with the layout.
+        let current_etcb = ExtendedTcbVersion::default();
+        let launch_etcb = ExtendedTcbVersion::default();
+        let committed_etcb = ExtendedTcbVersion::default();
+
         Ok(Self {
             version,
             guest_svn,
@@ -554,6 +579,9 @@ impl Decoder<()> for AttestationReport {
             launch_tcb,
             launch_mit_vector,
             current_mit_vector,
+            current_etcb,
+            launch_etcb,
+            committed_etcb,
             signature,
         })
     }
@@ -649,6 +677,18 @@ Launch Mitigation Vector:     {}
 
 Current Mitigation Vector:    {}
 
+Current Extended TCB:
+
+{}
+
+Launch Extended TCB:
+
+{}
+
+Committed Extended TCB:
+
+{}
+
 {}"#,
             self.version,
             self.guest_svn,
@@ -683,6 +723,9 @@ Current Mitigation Vector:    {}
                 .map_or("None".to_string(), |lmv| lmv.to_string()),
             self.current_mit_vector
                 .map_or("None".to_string(), |cmv| cmv.to_string()),
+            self.current_etcb,
+            self.launch_etcb,
+            self.committed_etcb,
             self.signature
         )
     }
@@ -1303,6 +1346,21 @@ TCB Version:
 Launch Mitigation Vector:     None
 
 Current Mitigation Vector:    None
+
+Current Extended TCB:
+
+Extended TCB Version:
+  (no fields defined)
+
+Launch Extended TCB:
+
+Extended TCB Version:
+  (no fields defined)
+
+Committed Extended TCB:
+
+Extended TCB Version:
+  (no fields defined)
 
 Signature:
   R:
