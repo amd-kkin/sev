@@ -6,7 +6,7 @@ use crate::certs::snp::{Certificate, Chain, Verifiable};
 use crate::{
     certs::snp::ecdsa::Signature,
     error::AttestationReportError,
-    firmware::host::{ExtendedTcbVersion, TcbVersion},
+    firmware::host::{EtcbVersion, TcbVersion},
     parser::{ByteParser, Decoder, Encoder},
     util::{
         hexline::HexLine,
@@ -326,11 +326,11 @@ pub struct AttestationReport {
 
     // 208h [192:0] Reserved. MBZ
     /// The CurrentEtcb. Only reported by Venice parts
-    pub current_etcb: ExtendedTcbVersion,
+    pub current_etcb: EtcbVersion,
     /// The LaunchEtcb. Only reported by Venice parts
-    pub launch_etcb: ExtendedTcbVersion,
+    pub launch_etcb: EtcbVersion,
     /// The CommitedEtcb. Only reported by Venice parts
-    pub committed_etcb: ExtendedTcbVersion,
+    pub committed_etcb: EtcbVersion,
 
     /// Signature of bytes 0 to 0x29F inclusive of this report.
     /// The format of the signature is found within Signature.
@@ -540,9 +540,9 @@ impl Decoder<()> for AttestationReport {
 
         // The extended TCBs are only reported by Venice parts. Everywhere else
         // their span is reserved and MBZ, so the fields stay at their defaults.
-        let mut current_etcb = ExtendedTcbVersion::default();
-        let mut launch_etcb = ExtendedTcbVersion::default();
-        let mut committed_etcb = ExtendedTcbVersion::default();
+        let mut current_etcb = EtcbVersion::default();
+        let mut launch_etcb = EtcbVersion::default();
+        let mut committed_etcb = EtcbVersion::default();
 
         // mit vecor fields were added in V5 and later.
         let (launch_mit_vector, current_mit_vector, signature) = match variant {
@@ -700,15 +700,15 @@ Launch Mitigation Vector:     {}
 
 Current Mitigation Vector:    {}
 
-Current Extended TCB:
+Current ETCB:
 
 {}
 
-Launch Extended TCB:
+Launch ETCB:
 
 {}
 
-Committed Extended TCB:
+Committed ETCB:
 
 {}
 
@@ -1370,9 +1370,9 @@ Launch Mitigation Vector:     None
 
 Current Mitigation Vector:    None
 
-Current Extended TCB:
+Current ETCB:
 
-Extended TCB Version:
+ETCB Version:
   ARG:            0
   DPE Driver:     0
   FHP Driver:     0
@@ -1388,9 +1388,9 @@ Extended TCB Version:
   MP1:            0
   IP Key Manager: 0
 
-Launch Extended TCB:
+Launch ETCB:
 
-Extended TCB Version:
+ETCB Version:
   ARG:            0
   DPE Driver:     0
   FHP Driver:     0
@@ -1406,9 +1406,9 @@ Extended TCB Version:
   MP1:            0
   IP Key Manager: 0
 
-Committed Extended TCB:
+Committed ETCB:
 
-Extended TCB Version:
+ETCB Version:
   ARG:            0
   DPE Driver:     0
   FHP Driver:     0
@@ -1896,8 +1896,8 @@ Signature:
 
     /// Builds an extended TCB whose fourteen SVNs ascend from `base`, so a
     /// misplaced field shows up as a wrong value rather than a wrong length.
-    fn sample_report_etcb(base: u8) -> ExtendedTcbVersion {
-        ExtendedTcbVersion {
+    fn sample_report_etcb(base: u8) -> EtcbVersion {
+        EtcbVersion {
             ip_key_manager: base,
             mp1: base + 1,
             art_fmc: base + 2,
@@ -1989,9 +1989,9 @@ Signature:
         assert_eq!(bytes[0x208..0x2A0], [0u8; 152]);
 
         let decoded = AttestationReport::from_bytes(&bytes).unwrap();
-        assert_eq!(decoded.current_etcb, ExtendedTcbVersion::default());
-        assert_eq!(decoded.launch_etcb, ExtendedTcbVersion::default());
-        assert_eq!(decoded.committed_etcb, ExtendedTcbVersion::default());
+        assert_eq!(decoded.current_etcb, EtcbVersion::default());
+        assert_eq!(decoded.launch_etcb, EtcbVersion::default());
+        assert_eq!(decoded.committed_etcb, EtcbVersion::default());
     }
 
     #[test]

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-//! Extended SNP Trusted Computing Base (TCB) version.
+//! Extended Trusted Computing Base (TCB) version.
 //!
-//! [`ExtendedTcbVersion`] is reported only by Venice parts. It is the 256-bit
+//! [`EtcbVersion`] is reported only by Venice parts. It is the 256-bit
 //! `ETCB_VERSION` field: fourteen single-byte SVNs occupying bits 111:0, with
 //! bits 255:112 reserved.
 //!
@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 /// Size of the serialized `ETCB_VERSION` field, in bytes.
 const ETCB_VERSION_LEN: usize = 32;
 
-/// ExtendedTcbVersion represents the extended TCB version reported by Venice
+/// EtcbVersion represents the extended TCB version reported by Venice
 /// parts.
 ///
 /// (Table 6; Structure of the ETCB_VERSION Field for "Venice" based programs)
@@ -39,7 +39,7 @@ const ETCB_VERSION_LEN: usize = 32;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
-pub struct ExtendedTcbVersion {
+pub struct EtcbVersion {
     /// Bits 111:104. SVN of AMD Root Guest (ARG).
     pub arg: u8,
     /// Bits 103:96. DPE Driver (ASP) version; SVN of DPE Driver firmware.
@@ -75,7 +75,7 @@ pub struct ExtendedTcbVersion {
     pub ip_key_manager: u8,
 }
 
-impl ExtendedTcbVersion {
+impl EtcbVersion {
     pub(crate) fn from_venice_bytes(bytes: &[u8; ETCB_VERSION_LEN]) -> Self {
         Self {
             ip_key_manager: bytes[0],
@@ -116,29 +116,29 @@ impl ExtendedTcbVersion {
     }
 }
 
-impl Encoder<()> for ExtendedTcbVersion {
+impl Encoder<()> for EtcbVersion {
     fn encode(&self, writer: &mut impl Write, _: ()) -> Result<(), std::io::Error> {
         writer.write_bytes(self.to_venice_bytes(), ())?;
         Ok(())
     }
 }
 
-impl Decoder<()> for ExtendedTcbVersion {
+impl Decoder<()> for EtcbVersion {
     fn decode(reader: &mut impl Read, _: ()) -> Result<Self, std::io::Error> {
-        Ok(ExtendedTcbVersion::from_venice_bytes(&reader.read_bytes()?))
+        Ok(EtcbVersion::from_venice_bytes(&reader.read_bytes()?))
     }
 }
 
-impl ByteParser<()> for ExtendedTcbVersion {
+impl ByteParser<()> for EtcbVersion {
     type Bytes = [u8; ETCB_VERSION_LEN];
     const EXPECTED_LEN: Option<usize> = Some(ETCB_VERSION_LEN);
 }
 
-impl Display for ExtendedTcbVersion {
+impl Display for EtcbVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            r#"Extended TCB Version:
+            r#"ETCB Version:
   ARG:            {}
   DPE Driver:     {}
   FHP Driver:     {}
@@ -184,8 +184,8 @@ mod tests {
         bytes
     }
 
-    fn sample_etcb() -> ExtendedTcbVersion {
-        ExtendedTcbVersion {
+    fn sample_etcb() -> EtcbVersion {
+        EtcbVersion {
             ip_key_manager: 1,
             mp1: 2,
             art_fmc: 3,
@@ -204,8 +204,8 @@ mod tests {
     }
 
     #[test]
-    fn test_extended_tcb_version_default() {
-        let etcb = ExtendedTcbVersion::default();
+    fn test_etcb_version_default() {
+        let etcb = EtcbVersion::default();
         assert_eq!(etcb.arg, 0);
         assert_eq!(etcb.microcode, 0);
         assert_eq!(etcb.ip_key_manager, 0);
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_extended_tcb_version_copy() {
+    fn test_etcb_version_copy() {
         let etcb = sample_etcb();
         let copy = etcb;
         assert_eq!(etcb, copy);
@@ -221,45 +221,45 @@ mod tests {
 
     /// Each field must land on the byte its bit range implies.
     #[test]
-    fn test_extended_tcb_version_bit_positions() {
-        let etcb = ExtendedTcbVersion::from_venice_bytes(&sample_bytes());
+    fn test_etcb_version_bit_positions() {
+        let etcb = EtcbVersion::from_venice_bytes(&sample_bytes());
         assert_eq!(etcb, sample_etcb());
     }
 
     #[test]
-    fn test_extended_tcb_version_round_trip() {
+    fn test_etcb_version_round_trip() {
         let bytes = sample_bytes();
-        let etcb = ExtendedTcbVersion::from_venice_bytes(&bytes);
+        let etcb = EtcbVersion::from_venice_bytes(&bytes);
         assert_eq!(etcb.to_venice_bytes(), bytes);
     }
 
     /// Bits 255:112 are reserved: ignored when decoding, zeroed when encoding.
     #[test]
-    fn test_extended_tcb_version_reserved_bytes() {
+    fn test_etcb_version_reserved_bytes() {
         let mut bytes = sample_bytes();
         bytes[14..].fill(0xFF);
 
-        let etcb = ExtendedTcbVersion::from_venice_bytes(&bytes);
+        let etcb = EtcbVersion::from_venice_bytes(&bytes);
         assert_eq!(etcb, sample_etcb());
         assert_eq!(etcb.to_venice_bytes()[14..], [0u8; 18]);
     }
 
     #[test]
-    fn test_extended_tcb_version_parse_and_write_bytes() {
+    fn test_etcb_version_parse_and_write_bytes() {
         let bytes = sample_bytes();
-        let etcb = ExtendedTcbVersion::from_bytes(&bytes).unwrap();
+        let etcb = EtcbVersion::from_bytes(&bytes).unwrap();
         assert_eq!(etcb, sample_etcb());
         assert_eq!(etcb.to_bytes().unwrap(), bytes);
     }
 
     #[test]
-    fn test_extended_tcb_version_short_buffer() {
-        assert!(ExtendedTcbVersion::from_bytes(&[0u8; 8]).is_err());
+    fn test_etcb_version_short_buffer() {
+        assert!(EtcbVersion::from_bytes(&[0u8; 8]).is_err());
     }
 
     #[test]
-    fn test_extended_tcb_version_display() {
-        let expected = r#"Extended TCB Version:
+    fn test_etcb_version_display() {
+        let expected = r#"ETCB Version:
   ARG:            14
   DPE Driver:     13
   FHP Driver:     12
