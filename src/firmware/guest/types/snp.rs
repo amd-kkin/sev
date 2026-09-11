@@ -445,11 +445,6 @@ impl Encoder<()> for AttestationReport {
             .skip_bytes::<1>()?
             .write_bytes(self.launch_tcb, generation)?;
 
-        // TODO: write `self.current_etcb`, `self.launch_etcb` and
-        // `self.committed_etcb` here once their fields and offsets are defined.
-        // They are only carried by Venice parts, and while the struct is empty
-        // they contribute no bytes.
-
         // Write launch and current mitigation vectors based on variant
         match variant {
             ReportVariant::V2 | ReportVariant::V3 => {
@@ -460,9 +455,22 @@ impl Encoder<()> for AttestationReport {
             _ => {
                 writer.write_bytes(self.launch_mit_vector.unwrap_or(0), ())?;
                 writer.write_bytes(self.current_mit_vector.unwrap_or(0), ())?;
-                writer
-                    .skip_bytes::<152>()?
-                    .write_bytes(self.signature, ())?;
+
+                // 208h is 24 reserved bytes, then the three extended TCBs at
+                // 220h, 240h and 260h, then 32 more reserved bytes before the
+                // signature at 2A0h. Only Venice parts report extended TCBs; on
+                // every other generation the whole 96-byte span is MBZ, so the
+                // fields are skipped rather than written.
+                writer.skip_bytes::<24>()?;
+                if matches!(generation, Generation::Venice) {
+                    writer.write_bytes(self.current_etcb, ())?;
+                    writer.write_bytes(self.launch_etcb, ())?;
+                    writer.write_bytes(self.committed_etcb, ())?;
+                } else {
+                    writer.skip_bytes::<96>()?;
+                }
+
+                writer.skip_bytes::<32>()?.write_bytes(self.signature, ())?;
             }
         }
 
@@ -530,25 +538,40 @@ impl Decoder<()> for AttestationReport {
         let committed = stepper.skip_bytes::<1>()?.read_bytes()?;
         let launch_tcb = stepper.skip_bytes::<1>()?.read_bytes_with(generation)?;
 
+        // The extended TCBs are only reported by Venice parts. Everywhere else
+        // their span is reserved and MBZ, so the fields stay at their defaults.
+        let mut current_etcb = ExtendedTcbVersion::default();
+        let mut launch_etcb = ExtendedTcbVersion::default();
+        let mut committed_etcb = ExtendedTcbVersion::default();
+
         // mit vecor fields were added in V5 and later.
         let (launch_mit_vector, current_mit_vector, signature) = match variant {
             ReportVariant::V2 | ReportVariant::V3 => {
                 (None, None, stepper.skip_bytes::<168>()?.read_bytes()?)
             }
-            _ => (
-                Some(stepper.read_bytes()?),
-                Some(stepper.read_bytes()?),
-                stepper.skip_bytes::<152>()?.read_bytes()?,
-            ),
-        };
+            _ => {
+                let launch_mit_vector = stepper.read_bytes()?;
+                let current_mit_vector = stepper.read_bytes()?;
 
-        // TODO: the extended TCBs are only carried by Venice parts, i.e. they
-        // are read under `matches!(generation, Generation::Venice)`. Their
-        // fields and offsets are not defined yet, so nothing is consumed from
-        // the reader and the gate lands with the layout.
-        let current_etcb = ExtendedTcbVersion::default();
-        let launch_etcb = ExtendedTcbVersion::default();
-        let committed_etcb = ExtendedTcbVersion::default();
+                // 208h is 24 reserved bytes, then the three extended TCBs at
+                // 220h, 240h and 260h, then 32 more reserved bytes before the
+                // signature at 2A0h.
+                stepper.skip_bytes::<24>()?;
+                if matches!(generation, Generation::Venice) {
+                    current_etcb = stepper.read_bytes()?;
+                    launch_etcb = stepper.read_bytes()?;
+                    committed_etcb = stepper.read_bytes()?;
+                } else {
+                    stepper.skip_bytes::<96>()?;
+                }
+
+                (
+                    Some(launch_mit_vector),
+                    Some(current_mit_vector),
+                    stepper.skip_bytes::<32>()?.read_bytes()?,
+                )
+            }
+        };
 
         Ok(Self {
             version,
@@ -1869,6 +1892,106 @@ Signature:
         let result = report.encode(&mut FailingWriter, ());
         assert!(result.is_err());
         assert!(writer.flush().is_ok());
+    }
+
+    /// Builds an extended TCB whose fourteen SVNs ascend from `base`, so a
+    /// misplaced field shows up as a wrong value rather than a wrong length.
+    fn sample_report_etcb(base: u8) -> ExtendedTcbVersion {
+        ExtendedTcbVersion {
+            ip_key_manager: base,
+            mp1: base + 1,
+            art_fmc: base + 2,
+            art_rt: base + 3,
+            had_driver: base + 4,
+            boot_driver: base + 5,
+            pre_esid: base + 6,
+            tmpm: base + 7,
+            microcode: base + 8,
+            soc_driver: base + 9,
+            asp_os_driver: base + 10,
+            fhp_driver: base + 11,
+            dpe_driver: base + 12,
+            arg: base + 13,
+        }
+    }
+
+    /// The extended TCBs sit at 220h, 240h and 260h, bracketed by reserved
+    /// bytes at 208h and 280h, with the signature following at 2A0h.
+    #[test]
+    fn test_attestation_report_venice_etcb_offsets() {
+        const RESERVED_208: usize = 0x208;
+        const CURRENT_ETCB: usize = 0x220;
+        const LAUNCH_ETCB: usize = 0x240;
+        const COMMITTED_ETCB: usize = 0x260;
+        const RESERVED_280: usize = 0x280;
+        const SIGNATURE: usize = 0x2A0;
+
+        let report = AttestationReport {
+            version: 5,
+            // Family 1Ah, model 50h identifies a Venice part.
+            cpuid_fam_id: Some(0x1A),
+            cpuid_mod_id: Some(0x50),
+            cpuid_step: Some(0),
+            launch_mit_vector: Some(0),
+            current_mit_vector: Some(0),
+            // Venice TCBs carry an FMC byte, unlike `TcbVersion::default()`.
+            current_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
+            reported_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
+            committed_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
+            launch_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
+            current_etcb: sample_report_etcb(1),
+            launch_etcb: sample_report_etcb(21),
+            committed_etcb: sample_report_etcb(41),
+            ..Default::default()
+        };
+
+        let bytes = report.to_bytes().unwrap();
+
+        assert_eq!(
+            bytes[CURRENT_ETCB..LAUNCH_ETCB],
+            sample_report_etcb(1).to_venice_bytes()
+        );
+        assert_eq!(
+            bytes[LAUNCH_ETCB..COMMITTED_ETCB],
+            sample_report_etcb(21).to_venice_bytes()
+        );
+        assert_eq!(
+            bytes[COMMITTED_ETCB..RESERVED_280],
+            sample_report_etcb(41).to_venice_bytes()
+        );
+
+        // The reserved bytes on either side of the block are MBZ.
+        assert_eq!(bytes[RESERVED_208..CURRENT_ETCB], [0u8; 24]);
+        assert_eq!(bytes[RESERVED_280..SIGNATURE], [0u8; 32]);
+
+        assert_eq!(AttestationReport::from_bytes(&bytes).unwrap(), report);
+    }
+
+    /// Non-Venice parts leave 208h through 2A0h reserved, so extended TCBs are
+    /// neither written nor read there.
+    #[test]
+    fn test_attestation_report_non_venice_etcb_reserved() {
+        let report = AttestationReport {
+            version: 5,
+            // Family 1Ah, model 02h identifies a Turin part.
+            cpuid_fam_id: Some(0x1A),
+            cpuid_mod_id: Some(0x02),
+            cpuid_step: Some(0),
+            launch_mit_vector: Some(0),
+            current_mit_vector: Some(0),
+            current_etcb: sample_report_etcb(1),
+            launch_etcb: sample_report_etcb(21),
+            committed_etcb: sample_report_etcb(41),
+            ..Default::default()
+        };
+
+        let bytes = report.to_bytes().unwrap();
+        assert_eq!(bytes[0x208..0x2A0], [0u8; 152]);
+
+        let decoded = AttestationReport::from_bytes(&bytes).unwrap();
+        assert_eq!(decoded.current_etcb, ExtendedTcbVersion::default());
+        assert_eq!(decoded.launch_etcb, ExtendedTcbVersion::default());
+        assert_eq!(decoded.committed_etcb, ExtendedTcbVersion::default());
     }
 
     #[test]
