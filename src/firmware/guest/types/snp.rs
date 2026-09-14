@@ -199,6 +199,9 @@ pub enum ReportVariant {
 
     /// Version 5 of the Attestation Report
     V5,
+
+    /// Version 6 of the Attestation Report
+    V6,
 }
 
 impl Encoder<()> for ReportVariant {
@@ -207,6 +210,7 @@ impl Encoder<()> for ReportVariant {
             ReportVariant::V2 => writer.write_bytes(2u32, ())?,
             ReportVariant::V3 => writer.write_bytes(3u32, ())?,
             ReportVariant::V5 => writer.write_bytes(5u32, ())?,
+            ReportVariant::V6 => writer.write_bytes(6u32, ())?,
         };
         Ok(())
     }
@@ -220,7 +224,8 @@ impl Decoder<()> for ReportVariant {
             2 => Self::V2,
             3 | 4 => Self::V3,
             5 => Self::V5,
-            _ => Self::V5,
+            6 => Self::V6,
+            _ => Self::V6,
         })
     }
 }
@@ -382,7 +387,8 @@ impl Encoder<()> for AttestationReport {
         let variant = match self.version {
             2 => ReportVariant::V2,
             3 | 4 => ReportVariant::V3,
-            _ => ReportVariant::V5,
+            5 => ReportVariant::V5,
+            _ => ReportVariant::V6,
         };
 
         let generation = match variant {
