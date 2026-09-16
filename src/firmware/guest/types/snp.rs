@@ -1933,7 +1933,7 @@ Signature:
         const SIGNATURE: usize = 0x2A0;
 
         let report = AttestationReport {
-            version: 5,
+            version: 6,
             // Family 1Ah, model 50h identifies a Venice part.
             cpuid_fam_id: Some(0x1A),
             cpuid_mod_id: Some(0x50),
@@ -1941,10 +1941,11 @@ Signature:
             launch_mit_vector: Some(0),
             current_mit_vector: Some(0),
             // Venice TCBs carry an FMC byte, unlike `TcbVersion::default()`.
-            current_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
-            reported_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
-            committed_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
-            launch_tcb: TcbVersion::new(Some(0), 0, 0, 0, 0),
+            // Venice TCBs do not encode bootloader or microcode SVNs.
+            current_tcb: TcbVersion::new(Some(1), None, 1, 0, None),
+            reported_tcb: TcbVersion::new(Some(1), None, 1, 0, None),
+            committed_tcb: TcbVersion::new(Some(1), None, 1, 0, None),
+            launch_tcb: TcbVersion::new(Some(0), None, 0, 0, None),
             current_etcb: sample_report_etcb(1),
             launch_etcb: sample_report_etcb(21),
             committed_etcb: sample_report_etcb(41),
