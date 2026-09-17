@@ -1116,7 +1116,8 @@ bitfield! {
     /// SIGNING_KEY field: Encodes the key used to sign this report.
     /// (0) VCEK
     /// (1) VLEK
-    /// (2-6) RESERVED
+    /// (2) Chip-secret VCEK (TODO: Venice only? Version 6?)
+    /// (3-6) RESERVED
     /// (7) NONE
     pub signing_key, _: 4,2;
 
@@ -1158,6 +1159,7 @@ impl Display for KeyInfo {
         let signing_key = match self.signing_key() {
             0 => "vcek",
             1 => "vlek",
+            2 => "csvcek",
             7 => "none",
             _ => "unknown",
         };
@@ -1618,6 +1620,17 @@ Signature:
     mask chip key:      false
     signing key:        vlek"#;
         let actual: KeyInfo = KeyInfo(0b100);
+
+        assert_eq!(expected, actual.to_string());
+    }
+
+    #[test]
+    fn test_key_info_fmt_csvcek() {
+        let expected: &str = r#"Key Information:
+    author key enabled: false
+    mask chip key:      false
+    signing key:        csvcek"#;
+        let actual: KeyInfo = KeyInfo(0b1000);
 
         assert_eq!(expected, actual.to_string());
     }
