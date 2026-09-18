@@ -330,12 +330,12 @@ pub struct AttestationReport {
     pub current_mit_vector: Option<u64>,
 
     // 208h [192:0] Reserved. MBZ
-    /// The CurrentEtcb. Only reported by Venice parts
-    pub current_etcb: EtcbVersion,
-    /// The LaunchEtcb. Only reported by Venice parts
-    pub launch_etcb: EtcbVersion,
-    /// The CommitedEtcb. Only reported by Venice parts
-    pub committed_etcb: EtcbVersion,
+    /// The CurrentEtcb. Only reported by Venice parts; `None` on all others.
+    pub current_etcb: Option<EtcbVersion>,
+    /// The LaunchEtcb. Only reported by Venice parts; `None` on all others.
+    pub launch_etcb: Option<EtcbVersion>,
+    /// The CommitedEtcb. Only reported by Venice parts; `None` on all others.
+    pub committed_etcb: Option<EtcbVersion>,
 
     /// Signature of bytes 0 to 0x29F inclusive of this report.
     /// The format of the signature is found within Signature.
@@ -373,9 +373,9 @@ impl Default for AttestationReport {
             launch_tcb: Default::default(),
             launch_mit_vector: Default::default(),
             current_mit_vector: Default::default(),
-            current_etcb: Default::default(),
-            launch_etcb: Default::default(),
-            committed_etcb: Default::default(),
+            current_etcb: None,
+            launch_etcb: None,
+            committed_etcb: None,
             signature: Default::default(),
         }
     }
@@ -469,9 +469,9 @@ impl Encoder<()> for AttestationReport {
                 // fields are skipped rather than written.
                 writer.skip_bytes::<24>()?;
                 if matches!(generation, Generation::Venice) {
-                    writer.write_bytes(self.current_etcb, ())?;
-                    writer.write_bytes(self.launch_etcb, ())?;
-                    writer.write_bytes(self.committed_etcb, ())?;
+                    writer.write_bytes(self.current_etcb.unwrap_or_default(), ())?;
+                    writer.write_bytes(self.launch_etcb.unwrap_or_default(), ())?;
+                    writer.write_bytes(self.committed_etcb.unwrap_or_default(), ())?;
                 } else {
                     writer.skip_bytes::<96>()?;
                 }
@@ -546,9 +546,9 @@ impl Decoder<()> for AttestationReport {
 
         // The extended TCBs are only reported by Venice parts. Everywhere else
         // their span is reserved and MBZ, so the fields stay at their defaults.
-        let mut current_etcb = EtcbVersion::default();
-        let mut launch_etcb = EtcbVersion::default();
-        let mut committed_etcb = EtcbVersion::default();
+        let mut current_etcb = None;
+        let mut launch_etcb = None;
+        let mut committed_etcb = None;
 
         // mit vecor fields were added in V5 and later.
         let (launch_mit_vector, current_mit_vector, signature) = match variant {
@@ -564,9 +564,9 @@ impl Decoder<()> for AttestationReport {
                 // signature at 2A0h.
                 stepper.skip_bytes::<24>()?;
                 if matches!(generation, Generation::Venice) {
-                    current_etcb = stepper.read_bytes()?;
-                    launch_etcb = stepper.read_bytes()?;
-                    committed_etcb = stepper.read_bytes()?;
+                    current_etcb = Some(stepper.read_bytes()?);
+                    launch_etcb = Some(stepper.read_bytes()?);
+                    committed_etcb = Some(stepper.read_bytes()?);
                 } else {
                     stepper.skip_bytes::<96>()?;
                 }
@@ -752,9 +752,9 @@ Committed ETCB:
                 .map_or("None".to_string(), |lmv| lmv.to_string()),
             self.current_mit_vector
                 .map_or("None".to_string(), |cmv| cmv.to_string()),
-            self.current_etcb,
-            self.launch_etcb,
-            self.committed_etcb,
+            self.current_etcb.map_or("None".to_string(), |etcb| etcb.to_string()),
+            self.launch_etcb.map_or("None".to_string(), |etcb| etcb.to_string()),
+            self.committed_etcb.map_or("None".to_string(), |etcb| etcb.to_string()),
             self.signature
         )
     }
@@ -1380,57 +1380,15 @@ Current Mitigation Vector:    None
 
 Current ETCB:
 
-ETCB Version:
-  ARG:            0
-  DPE Driver:     0
-  FHP Driver:     0
-  ASP OS Driver:  0
-  SoC Driver:     0
-  Microcode:      0
-  TMPM:           0
-  PreEsid:        0
-  Boot Driver:    0
-  HAD Driver:     0
-  ART RT:         0
-  ART FMC:        0
-  MP1:            0
-  IP Key Manager: 0
+None
 
 Launch ETCB:
 
-ETCB Version:
-  ARG:            0
-  DPE Driver:     0
-  FHP Driver:     0
-  ASP OS Driver:  0
-  SoC Driver:     0
-  Microcode:      0
-  TMPM:           0
-  PreEsid:        0
-  Boot Driver:    0
-  HAD Driver:     0
-  ART RT:         0
-  ART FMC:        0
-  MP1:            0
-  IP Key Manager: 0
+None
 
 Committed ETCB:
 
-ETCB Version:
-  ARG:            0
-  DPE Driver:     0
-  FHP Driver:     0
-  ASP OS Driver:  0
-  SoC Driver:     0
-  Microcode:      0
-  TMPM:           0
-  PreEsid:        0
-  Boot Driver:    0
-  HAD Driver:     0
-  ART RT:         0
-  ART FMC:        0
-  MP1:            0
-  IP Key Manager: 0
+None
 
 Signature:
   R:
@@ -1959,9 +1917,9 @@ Signature:
             reported_tcb: TcbVersion::new(Some(1), None, 1, 0, None),
             committed_tcb: TcbVersion::new(Some(1), None, 1, 0, None),
             launch_tcb: TcbVersion::new(Some(0), None, 0, 0, None),
-            current_etcb: sample_report_etcb(1),
-            launch_etcb: sample_report_etcb(21),
-            committed_etcb: sample_report_etcb(41),
+            current_etcb: Some(sample_report_etcb(1)),
+            launch_etcb: Some(sample_report_etcb(21)),
+            committed_etcb: Some(sample_report_etcb(41)),
             ..Default::default()
         };
 
@@ -1999,9 +1957,9 @@ Signature:
             cpuid_step: Some(0),
             launch_mit_vector: Some(0),
             current_mit_vector: Some(0),
-            current_etcb: sample_report_etcb(1),
-            launch_etcb: sample_report_etcb(21),
-            committed_etcb: sample_report_etcb(41),
+            current_etcb: Some(sample_report_etcb(1)),
+            launch_etcb: Some(sample_report_etcb(21)),
+            committed_etcb: Some(sample_report_etcb(41)),
             ..Default::default()
         };
 
@@ -2009,9 +1967,9 @@ Signature:
         assert_eq!(bytes[0x208..0x2A0], [0u8; 152]);
 
         let decoded = AttestationReport::from_bytes(&bytes).unwrap();
-        assert_eq!(decoded.current_etcb, EtcbVersion::default());
-        assert_eq!(decoded.launch_etcb, EtcbVersion::default());
-        assert_eq!(decoded.committed_etcb, EtcbVersion::default());
+        assert_eq!(decoded.current_etcb, None);
+        assert_eq!(decoded.launch_etcb, None);
+        assert_eq!(decoded.committed_etcb, None);
     }
 
     #[test]
