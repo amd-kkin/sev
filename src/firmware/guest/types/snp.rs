@@ -454,31 +454,30 @@ impl Encoder<()> for AttestationReport {
         // Write launch and current mitigation vectors based on variant
         match variant {
             ReportVariant::V2 | ReportVariant::V3 => {
-                writer
-                    .skip_bytes::<168>()?
-                    .write_bytes(self.signature, ())?;
+                writer.skip_bytes::<40>()?;
             }
             _ => {
                 writer.write_bytes(self.launch_mit_vector.unwrap_or(0), ())?;
                 writer.write_bytes(self.current_mit_vector.unwrap_or(0), ())?;
-
-                // 208h is 24 reserved bytes, then the three extended TCBs at
-                // 220h, 240h and 260h, then 32 more reserved bytes before the
-                // signature at 2A0h. Only Venice parts report extended TCBs; on
-                // every other generation the whole 96-byte span is MBZ, so the
-                // fields are skipped rather than written.
                 writer.skip_bytes::<24>()?;
-                if matches!(generation, Generation::Venice) {
-                    writer.write_bytes(self.current_etcb.unwrap_or_default(), ())?;
-                    writer.write_bytes(self.launch_etcb.unwrap_or_default(), ())?;
-                    writer.write_bytes(self.committed_etcb.unwrap_or_default(), ())?;
-                } else {
-                    writer.skip_bytes::<96>()?;
-                }
-
-                writer.skip_bytes::<32>()?.write_bytes(self.signature, ())?;
             }
         }
+
+        // Write extended TCBs based on variant and generation. Only Venice V6
+        // parts report extended TCBs; on every other generation the 96-byte
+        // span is MBZ.
+        match (variant, generation) {
+            (ReportVariant::V6, Generation::Venice) => {
+                writer.write_bytes(self.current_etcb.unwrap_or_default(), ())?;
+                writer.write_bytes(self.launch_etcb.unwrap_or_default(), ())?;
+                writer.write_bytes(self.committed_etcb.unwrap_or_default(), ())?;
+            }
+            _ => {
+                writer.skip_bytes::<96>()?;
+            }
+        }
+
+        writer.skip_bytes::<32>()?.write_bytes(self.signature, ())?;
 
         Ok(())
     }
@@ -550,34 +549,34 @@ impl Decoder<()> for AttestationReport {
         let mut launch_etcb = None;
         let mut committed_etcb = None;
 
-        // mit vecor fields were added in V5 and later.
-        let (launch_mit_vector, current_mit_vector, signature) = match variant {
+        // Mit vector fields were added in V5 and later.
+        let (launch_mit_vector, current_mit_vector) = match variant {
             ReportVariant::V2 | ReportVariant::V3 => {
-                (None, None, stepper.skip_bytes::<168>()?.read_bytes()?)
+                stepper.skip_bytes::<40>()?;
+                (None, None)
             }
             _ => {
                 let launch_mit_vector = stepper.read_bytes()?;
                 let current_mit_vector = stepper.read_bytes()?;
-
-                // 208h is 24 reserved bytes, then the three extended TCBs at
-                // 220h, 240h and 260h, then 32 more reserved bytes before the
-                // signature at 2A0h.
                 stepper.skip_bytes::<24>()?;
-                if matches!(generation, Generation::Venice) {
-                    current_etcb = Some(stepper.read_bytes()?);
-                    launch_etcb = Some(stepper.read_bytes()?);
-                    committed_etcb = Some(stepper.read_bytes()?);
-                } else {
-                    stepper.skip_bytes::<96>()?;
-                }
-
-                (
-                    Some(launch_mit_vector),
-                    Some(current_mit_vector),
-                    stepper.skip_bytes::<32>()?.read_bytes()?,
-                )
+                (Some(launch_mit_vector), Some(current_mit_vector))
             }
         };
+
+        // Extended TCBs are only reported by Venice V6 parts; elsewhere the
+        // 96-byte span is MBZ.
+        match (variant, generation) {
+            (ReportVariant::V6, Generation::Venice) => {
+                current_etcb = Some(stepper.read_bytes()?);
+                launch_etcb = Some(stepper.read_bytes()?);
+                committed_etcb = Some(stepper.read_bytes()?);
+            }
+            _ => {
+                stepper.skip_bytes::<96>()?;
+            }
+        }
+
+        let signature = stepper.skip_bytes::<32>()?.read_bytes()?;
 
         Ok(Self {
             version,
@@ -752,9 +751,12 @@ Committed ETCB:
                 .map_or("None".to_string(), |lmv| lmv.to_string()),
             self.current_mit_vector
                 .map_or("None".to_string(), |cmv| cmv.to_string()),
-            self.current_etcb.map_or("None".to_string(), |etcb| etcb.to_string()),
-            self.launch_etcb.map_or("None".to_string(), |etcb| etcb.to_string()),
-            self.committed_etcb.map_or("None".to_string(), |etcb| etcb.to_string()),
+            self.current_etcb
+                .map_or("None".to_string(), |etcb| etcb.to_string()),
+            self.launch_etcb
+                .map_or("None".to_string(), |etcb| etcb.to_string()),
+            self.committed_etcb
+                .map_or("None".to_string(), |etcb| etcb.to_string()),
             self.signature
         )
     }
