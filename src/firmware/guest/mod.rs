@@ -93,7 +93,7 @@ impl Firmware {
         data: Option<[u8; 64]>,
         vmpl: Option<u32>,
     ) -> Result<Vec<u8>, UserApiError> {
-        let mut input = ReportReq::new(data, vmpl)?;
+        let mut input = ReportReq::new(data, vmpl, None)?;
         let mut response = ReportRsp::default();
 
         let mut request: GuestRequest<ReportReq, ReportRsp> =
@@ -121,7 +121,7 @@ impl Firmware {
         data: Option<[u8; 64]>,
         vmpl: Option<u32>,
     ) -> Result<(Vec<u8>, Option<Vec<CertTableEntry>>), UserApiError> {
-        let report_request = ReportReq::new(data, vmpl)?;
+        let report_request = ReportReq::new(data, vmpl, None)?;
 
         let mut report_response = ReportRsp::default();
 

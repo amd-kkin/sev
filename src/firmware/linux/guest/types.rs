@@ -153,7 +153,20 @@ impl ReportReq {
     ///
     /// * `report_data` - (Optional) 64 bytes of unique data to be included in the generated report.
     /// * `vmpl` - The VMPL level the guest VM is running on.
-    pub fn new(report_data: Option<[u8; 64]>, vmpl: Option<u32>) -> Result<Self, UserApiError> {
+    /// * `key_sel` - (Optional) Selects the key used to sign the report. Defaults to `0`.
+    ///     * `0` - VLEK if installed, else key indicated by CsVcekPref.
+    ///     * `1` - Legacy VCEK.
+    ///     * `2` - VLEK.
+    ///     * `3` - Chip secret VCEK (CSVCEK).
+    ///
+    ///     The firmware reads only the low two bits, so `0` through `3` are the
+    ///     valid values; anything larger is passed through and rejected by the
+    ///     firmware.
+    pub fn new(
+        report_data: Option<[u8; 64]>,
+        vmpl: Option<u32>,
+        key_sel: Option<u32>,
+    ) -> Result<Self, UserApiError> {
         let mut request = Self::default();
 
         if let Some(report_data) = report_data {
@@ -168,18 +181,11 @@ impl ReportReq {
             }
         }
 
-        Ok(request)
-    }
+        if let Some(key_sel) = key_sel {
+            request.key_sel = key_sel;
+        }
 
-    /// Sets the key selector for signing the attestation report.
-    ///
-    /// * `0` - VLEK if installed, else key indicated by CsVcekPref (default).
-    /// * `1` - Legacy VCEK.
-    /// * `2` - VLEK.
-    /// * `3` - Chip secret VCEK (CSVCEK).
-    pub fn with_key_sel(mut self, key_sel: u32) -> Self {
-        self.key_sel = key_sel;
-        self
+        Ok(request)
     }
 }
 
@@ -259,7 +265,7 @@ mod test {
                 _reserved: [0; 24],
             };
 
-            let actual: ReportReq = ReportReq::new(Some(report_data), Some(0)).unwrap();
+            let actual: ReportReq = ReportReq::new(Some(report_data), Some(0), None).unwrap();
 
             assert_eq!(expected, actual);
         }
@@ -280,7 +286,7 @@ mod test {
                 _reserved: [0; 24],
             };
 
-            let actual: ReportReq = ReportReq::new(Some(report_data), Some(0)).unwrap();
+            let actual: ReportReq = ReportReq::new(Some(report_data), Some(0), None).unwrap();
 
             assert_eq!(expected, actual);
         }
@@ -341,27 +347,26 @@ mod test {
 
         // Test successful creation with Some values
         let report_data = [42u8; 64];
-        let req = ReportReq::new(Some(report_data), Some(2)).unwrap();
+        let req = ReportReq::new(Some(report_data), Some(2), None).unwrap();
         assert_eq!(req.report_data, report_data);
         assert_eq!(req.vmpl, 2);
 
         // Test successful creation with None values
-        let req = ReportReq::new(None, None).unwrap();
+        let req = ReportReq::new(None, None, None).unwrap();
         assert_eq!(req.report_data, [0; 64]);
         assert_eq!(req.vmpl, 1);
+        assert_eq!(req.key_sel, 0);
 
         // Test VMPL validation
-        assert!(ReportReq::new(None, Some(4)).is_err());
-        assert!(ReportReq::new(None, Some(MAX_VMPL)).is_ok());
+        assert!(ReportReq::new(None, Some(4), None).is_err());
+        assert!(ReportReq::new(None, Some(MAX_VMPL), None).is_ok());
 
-        // Test with_key_sel builder
-        let req = ReportReq::new(None, None).unwrap().with_key_sel(3);
+        // Test key selector
+        let req = ReportReq::new(None, None, Some(3)).unwrap();
         assert_eq!(req.key_sel, 3);
 
         // Ensure other fields are unaffected
-        let req = ReportReq::new(Some(report_data), Some(2))
-            .unwrap()
-            .with_key_sel(1);
+        let req = ReportReq::new(Some(report_data), Some(2), Some(1)).unwrap();
         assert_eq!(req.report_data, report_data);
         assert_eq!(req.vmpl, 2);
         assert_eq!(req.key_sel, 1);

@@ -373,9 +373,9 @@ impl Default for AttestationReport {
             launch_tcb: Default::default(),
             launch_mit_vector: Default::default(),
             current_mit_vector: Default::default(),
-            current_etcb: None,
-            launch_etcb: None,
-            committed_etcb: None,
+            current_etcb: Default::default(),
+            launch_etcb: Default::default(),
+            committed_etcb: Default::default(),
             signature: Default::default(),
         }
     }
@@ -543,12 +543,6 @@ impl Decoder<()> for AttestationReport {
         let committed = stepper.skip_bytes::<1>()?.read_bytes()?;
         let launch_tcb = stepper.skip_bytes::<1>()?.read_bytes_with(generation)?;
 
-        // The extended TCBs are only reported by Venice parts. Everywhere else
-        // their span is reserved and MBZ, so the fields stay at their defaults.
-        let mut current_etcb = None;
-        let mut launch_etcb = None;
-        let mut committed_etcb = None;
-
         // Mit vector fields were added in V5 and later.
         let (launch_mit_vector, current_mit_vector) = match variant {
             ReportVariant::V2 | ReportVariant::V3 => {
@@ -565,16 +559,18 @@ impl Decoder<()> for AttestationReport {
 
         // Extended TCBs are only reported by Venice V6 parts; elsewhere the
         // 96-byte span is MBZ.
-        match (variant, generation) {
+        let (current_etcb, launch_etcb, committed_etcb) = match (variant, generation) {
             (ReportVariant::V6, Generation::Venice) => {
-                current_etcb = Some(stepper.read_bytes()?);
-                launch_etcb = Some(stepper.read_bytes()?);
-                committed_etcb = Some(stepper.read_bytes()?);
+                let current_etcb = stepper.read_bytes()?;
+                let launch_etcb = stepper.read_bytes()?;
+                let committed_etcb = stepper.read_bytes()?;
+                (Some(current_etcb), Some(launch_etcb), Some(committed_etcb))
             }
             _ => {
                 stepper.skip_bytes::<96>()?;
+                (None, None, None)
             }
-        }
+        };
 
         let signature = stepper.skip_bytes::<32>()?.read_bytes()?;
 
@@ -1118,7 +1114,7 @@ bitfield! {
     /// SIGNING_KEY field: Encodes the key used to sign this report.
     /// (0) VCEK
     /// (1) VLEK
-    /// (2) Chip-secret VCEK (TODO: Venice only? Version 6?)
+    /// (2) Chip-secret VCEK
     /// (3-6) RESERVED
     /// (7) NONE
     pub signing_key, _: 4,2;
